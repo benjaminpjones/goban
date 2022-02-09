@@ -41,6 +41,7 @@
     },
     "homepage": "https://github.com/online-go/goban#readme",
     "devDependencies": {
+        "@types/jest": "^27.4.0",
         "@types/react": "^17.0.5",
         "@types/react-dom": "^17.0.5",
         "@typescript-eslint/eslint-plugin": "^5.10.0",
@@ -68,6 +69,9 @@
         "webpack-dev-server": "^3.11.2"
     },
     "jest": {
-        "testPathIgnorePatterns": ["<rootDir>/lib/", "<rootDir>/src/test.tsx"]
+        "testPathIgnorePatterns": [
+            "<rootDir>/lib/",
+            "<rootDir>/src/test.tsx"
+        ]
     }
 }
