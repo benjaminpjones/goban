@@ -19,6 +19,7 @@
         "goban"
     ],
     "scripts": {
+        "test": "jest",
         "dev": "webpack-cli serve",
         "build-debug": "webpack",
         "build-production": "webpack --mode production",
@@ -52,6 +53,7 @@
         "eslint-plugin-prettier": "^4.0.0",
         "eventemitter3": "^4.0.7",
         "fork-ts-checker-webpack-plugin": "^6.3.4",
+        "jest": "^27.5.1",
         "prettier": "^2.5.1",
         "prettier-eslint": "^13.0.0",
         "react": "^17.0.2",
@@ -64,5 +66,8 @@
         "webpack": "^5.58.2",
         "webpack-cli": "^4.9.0",
         "webpack-dev-server": "^3.11.2"
+    },
+    "jest": {
+        "testPathIgnorePatterns": ["<rootDir>/lib/", "<rootDir>/src/test.tsx"]
     }
 }
