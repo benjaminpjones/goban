@@ -794,20 +794,15 @@ export class GobanCanvas extends GobanCore {
                 (this.engine.phase === "stone removal" || this.scoring_mode) &&
                 this.engine.isActivePlayer(this.player_id)
             ) {
-                let arrs: Array<[-1 | 0 | 1, Group]>;
-                if (event.shiftKey || event.ctrlKey || event.altKey || event.metaKey) {
-                    const removed: 0 | 1 = !this.engine.removal[y][x] ? 1 : 0;
-                    arrs = [[removed, [{ x: x, y: y }]]];
+                if (this.scoring_mode) {
+                    this.score_estimate = this.engine.estimateScore(
+                        SCORE_ESTIMATION_TRIALS,
+                        SCORE_ESTIMATION_TOLERANCE,
+                    );
+                    this.redraw(true);
                 } else {
-                    arrs = this.engine.toggleMetaGroupRemoval(x, y);
-                }
-
-                for (let i = 0; i < arrs.length; ++i) {
-                    const arr: [-1 | 0 | 1, Group] = arrs[i];
-
-                    const removed = arr[0];
-                    const group = arr[1];
-                    if (group.length && !this.scoring_mode) {
+                    const [[removed, group]] = this.engine.toggleMetaGroupRemoval(x, y);
+                    if (group.length) {
                         this.socket.send("game/removed_stones/set", {
                             auth: this.config.auth,
                             game_id: this.config.game_id,
@@ -815,13 +810,6 @@ export class GobanCanvas extends GobanCore {
                             removed: removed,
                             stones: encodeMoves(group),
                         });
-                    }
-                    if (this.scoring_mode) {
-                        this.score_estimate = this.engine.estimateScore(
-                            SCORE_ESTIMATION_TRIALS,
-                            SCORE_ESTIMATION_TOLERANCE,
-                        );
-                        this.redraw(true);
                     }
                 }
             } else if (this.mode === "puzzle") {

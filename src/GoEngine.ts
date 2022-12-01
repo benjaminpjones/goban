@@ -1580,6 +1580,12 @@ export class GoEngine extends TypedEventEmitter<Events> {
         };
     }
 
+    /** Marks a group to be removed if it was not removed, otherwise marks it alive.
+     *
+     * Return value:
+     *  - a two element array if removing: [[1, removed_stones], [0, empty_spaces]]
+     *  - a one element array otherwise: [[0, (un)removed_stones]]
+     */
     public toggleMetaGroupRemoval(x: number, y: number): Array<[-1 | 0 | 1, Group]> {
         try {
             if (x >= 0 && y >= 0) {
@@ -1621,11 +1627,11 @@ export class GoEngine extends TypedEventEmitter<Events> {
                 }
 
                 if (!removing) {
-                    return [[removing, removed_stones]];
+                    return [[0, removed_stones]];
                 } else {
                     return [
-                        [removing, removed_stones],
-                        [!removing ? 1 : 0, empty_spaces],
+                        [1, removed_stones],
+                        [0, empty_spaces],
                     ];
                 }
             }
