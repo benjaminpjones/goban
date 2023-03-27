@@ -48,7 +48,7 @@ import {
 import { AdHocClock, AdHocPlayerClock, AdHocPauseControl } from "./AdHocFormat";
 import { MessageID } from "./messages";
 import { GobanSocket, GobanSocketEvents } from "./GobanSocket";
-import { EventEmitter } from "eventemitter3";
+import EventEmitter from "eventemitter3";
 
 declare let swal: any;
 

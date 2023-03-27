@@ -31,7 +31,7 @@ import {
 } from "./JGOF";
 import { AdHocPackedMove } from "./AdHocFormat";
 import { _ } from "./translate";
-import { EventEmitter } from "eventemitter3";
+import EventEmitter from "eventemitter3";
 import { GameClock } from "./protocol";
 
 declare const CLIENT: boolean;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { EventEmitter } from "eventemitter3";
+import EventEmitter from "eventemitter3";
 import { niceInterval } from "./GoUtil";
 import { ClientToServer, ClientToServerBase, ServerToClient } from "./protocol";
 

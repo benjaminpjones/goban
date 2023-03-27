@@ -19,7 +19,7 @@ import * as ReactDOM from "react-dom/client";
 import { GobanCore, GobanConfig, GobanHooks } from "./GobanCore";
 //import { GobanPixi } from './GobanPixi';
 import { GobanCanvas, GobanCanvasConfig } from "./GobanCanvas";
-import { EventEmitter } from "eventemitter3";
+import EventEmitter from "eventemitter3";
 
 let stored_config: GobanConfig = {};
 try {
