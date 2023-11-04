@@ -32,7 +32,8 @@ import { Move, NumberMatrix, Intersection, encodeMove } from "./GoMath";
 import * as GoMath from "./GoMath";
 import { GoConditionalMove, ConditionalMoveResponse } from "./GoConditionalMove";
 import { MoveTree, MarkInterface, MoveTreePenMarks } from "./MoveTree";
-import { init_score_estimator, ScoreEstimator } from "./ScoreEstimator";
+import { ScoreEstimator } from "./ScoreEstimator";
+import { init_score_estimator } from "./local_score_estimators/wasm_scorer";
 import { deepEqual, dup, computeAverageMoveTime, niceInterval } from "./GoUtil";
 import { _, interpolate } from "./translate";
 import {
@@ -2251,7 +2252,7 @@ export abstract class GobanCore extends EventEmitter<Events> {
             !("auto_scoring_done" in this) &&
             !("auto_scoring_done" in (this as any).engine)
         ) {
-            (this as any).autoScore();
+            this.autoScore();
         }
 
         this.emit("load", config);

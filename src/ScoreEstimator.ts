@@ -23,23 +23,12 @@ import { GobanCore } from "./GobanCore";
 import { GoEngine, PlayerScore, GoEngineRules } from "./GoEngine";
 import { JGOFNumericPlayerColor } from "./JGOF";
 import { _ } from "./translate";
+import { areaMapWasm } from "./local_score_estimators/wasm_scorer";
 
-declare const CLIENT: boolean;
-
-/* The OGSScoreEstimator method is a wasm compiled C program that
- * does simple random playouts. On the client, the OGSScoreEstimator script
- * is loaded in an async fashion, so at some point that global variable
- * becomes not null and can be used.
- */
-
-/* In addition to the OGSScoreEstimator method, we have a RemoteScoring system
+/* In addition to the local estimators, we have a RemoteScoring system
  * which needs to be initialized by either the client or the server if we want
  * remote scoring enabled.
  */
-
-declare let OGSScoreEstimator: any;
-let OGSScoreEstimator_initialized = false;
-let OGSScoreEstimatorModule: any;
 
 export interface ScoreEstimateRequest {
     player_to_move: "black" | "white";
@@ -67,59 +56,28 @@ export function set_remote_scorer(
     remote_scorer = scorer;
 }
 
-let init_promise: Promise<boolean>;
-
-export function init_score_estimator(): Promise<boolean> {
-    if (!CLIENT) {
-        throw new Error("Only initialize WASM library on the client side");
-    }
-
-    if (OGSScoreEstimator_initialized) {
-        return Promise.resolve(true);
-    }
-
-    if (init_promise) {
-        return init_promise;
-    }
-
-    try {
-        if (
-            !OGSScoreEstimatorModule &&
-            (("OGSScoreEstimator" in window) as any) &&
-            ((window as any)["OGSScoreEstimator"] as any)
-        ) {
-            OGSScoreEstimatorModule = (window as any)["OGSScoreEstimator"] as any;
-        }
-    } catch (e) {
-        console.error(e);
-    }
-
-    if (OGSScoreEstimatorModule) {
-        OGSScoreEstimatorModule = OGSScoreEstimatorModule();
-        OGSScoreEstimator_initialized = true;
-        return Promise.resolve(true);
-    }
-
-    const script: HTMLScriptElement = document.getElementById(
-        "ogs_score_estimator_script",
-    ) as HTMLScriptElement;
-    if (script) {
-        let resolve: (tf: boolean) => void;
-        init_promise = new Promise<boolean>((_resolve, _reject) => {
-            resolve = _resolve;
-        });
-
-        script.onload = () => {
-            OGSScoreEstimatorModule = OGSScoreEstimator;
-            OGSScoreEstimatorModule = OGSScoreEstimatorModule();
-            OGSScoreEstimator_initialized = true;
-            resolve(true);
-        };
-
-        return init_promise;
-    } else {
-        return Promise.reject("score estimator not available");
-    }
+/**
+ * A function signature that is shared among local estimators.  The trials and
+ * tolerance parameters are mostly just used for the WASM estimator.
+ *
+ * @param data a representation of the board (-1=white, 0=empty or dead, 1=black)
+ * @param color_to_move the player whose move it currently is
+ * @param trials number of playouts (higher increases accuracy, but also compute cost)
+ * @param tolerance value between 0.0 and 1.0. Higher means more confidence is required
+ *                  in order to mark ownership of a stone.
+ *
+ * @returns an representation of the ownership (-1=white, 0=neutral, 1=black),
+ * using area counting.
+ */
+type LocalScoringFunction = (
+    data: Array<Array<-1 | 0 | 1>>,
+    color_to_move: "black" | "white",
+    trials: number,
+    tolerance: number,
+) => Array<Array<number>>;
+let local_scorer: LocalScoringFunction = areaMapWasm;
+export function set_local_scorer(scorer: LocalScoringFunction): void {
+    local_scorer = scorer;
 }
 
 interface SEPoint {
@@ -296,14 +254,40 @@ export class ScoreEstimator {
 
     public estimateScore(trials: number, tolerance: number): Promise<void> {
         if (!this.prefer_remote || this.height > 19 || this.width > 19) {
-            return this.estimateScoreWASM(trials, tolerance);
+            return this.estimateScoreLocal(trials, tolerance);
         }
 
         if (remote_scorer) {
             return this.estimateScoreRemote();
         } else {
-            return this.estimateScoreWASM(trials, tolerance);
+            return this.estimateScoreLocal(trials, tolerance);
         }
+    }
+
+    private estimateScoreLocal(trials: number, tolerance: number): Promise<void> {
+        const board = GoMath.makeEmptyObjectMatrix<-1 | 0 | 1>(this.width, this.height);
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                board[y][x] = this.board[y][x] === 2 ? -1 : (this.board[y][x] as 0 | 1);
+                if (this.removal[y][x]) {
+                    board[y][x] = 0;
+                }
+            }
+        }
+
+        const ownership = local_scorer(board, this.engine.colorToMove(), trials, tolerance);
+
+        let score = 0;
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                score += ownership[y][x];
+            }
+        }
+
+        const adjusted = adjust_estimate(this.engine, this.board, ownership, score);
+
+        this.updateEstimate(adjusted.score, adjusted.ownership);
+        return Promise.resolve();
     }
 
     private estimateScoreRemote(): Promise<void> {
@@ -357,79 +341,6 @@ export class ScoreEstimator {
                     reject(err);
                 });
         });
-    }
-
-    /* Somewhat deprecated in-browser score estimator that utilizes our WASM compiled
-     * OGSScoreEstimatorModule */
-    private estimateScoreWASM(trials: number, tolerance: number): Promise<void> {
-        if (!OGSScoreEstimator_initialized) {
-            throw new Error("Score estimator not intialized yet, uptime = " + performance.now());
-        }
-
-        if (!trials) {
-            trials = 1000;
-        }
-        if (!tolerance) {
-            tolerance = 0.25;
-        }
-
-        /* Call our score estimator code to do the estimation. We do this assignment here
-         * because it's likely that the module isn't done loading on the client
-         * when the top of this script (where score estimator is first assigned) is
-         * executing. (it's loaded async)
-         */
-        const nbytes = 4 * this.engine.width * this.engine.height;
-        const ptr = OGSScoreEstimatorModule._malloc(nbytes);
-        const ints = new Int32Array(OGSScoreEstimatorModule.HEAP32.buffer, ptr, nbytes);
-        let i = 0;
-        for (let y = 0; y < this.height; ++y) {
-            for (let x = 0; x < this.width; ++x) {
-                ints[i] = this.board[y][x] === 2 ? -1 : this.board[y][x];
-                if (this.removal[y][x]) {
-                    ints[i] = 0;
-                }
-                ++i;
-            }
-        }
-        const _estimate = OGSScoreEstimatorModule.cwrap("estimate", "number", [
-            "number",
-            "number",
-            "number",
-            "number",
-            "number",
-            "number",
-        ]);
-        const estimate = _estimate as (
-            w: number,
-            h: number,
-            p: number,
-            c: number,
-            tr: number,
-            to: number,
-        ) => number;
-        const estimated_score = estimate(
-            this.width,
-            this.height,
-            ptr,
-            this.engine.colorToMove() === "black" ? 1 : -1,
-            trials,
-            tolerance,
-        );
-
-        const ownership = GoMath.makeMatrix(this.width, this.height, 0);
-        i = 0;
-        for (let y = 0; y < this.height; ++y) {
-            for (let x = 0; x < this.width; ++x) {
-                ownership[y][x] = ints[i];
-                ++i;
-            }
-        }
-
-        const adjusted = adjust_estimate(this.engine, this.board, ownership, estimated_score);
-
-        OGSScoreEstimatorModule._free(ptr);
-        this.updateEstimate(adjusted.score, adjusted.ownership);
-        return Promise.resolve();
     }
 
     updateEstimate(estimated_score: number, ownership: Array<Array<number>>, score?: number) {
