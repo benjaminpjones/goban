@@ -1710,9 +1710,8 @@ export class GobanCanvas extends GobanCore {
                 (pos.score && (this.engine.phase !== "finished" || this.mode === "play")) ||
                 (this.scoring_mode &&
                     this.score_estimate &&
-                    (this.score_estimate.territory[j][i] ||
-                        (this.score_estimate.removal[j][i] &&
-                            this.score_estimate.board[j][i] === 0))) ||
+                    this.score_estimate.removal[j][i] &&
+                    this.score_estimate.board[j][i] === 0) ||
                 ((this.engine.phase === "stone removal" ||
                     (this.engine.phase === "finished" && this.mode === "play")) &&
                     this.engine.board[j][i] === 0 &&
@@ -1724,17 +1723,10 @@ export class GobanCanvas extends GobanCore {
                 if (
                     this.scoring_mode &&
                     this.score_estimate &&
-                    (this.score_estimate.territory[j][i] ||
-                        (this.score_estimate.removal[j][i] &&
-                            this.score_estimate.board[j][i] === 0))
+                    this.score_estimate.removal[j][i] &&
+                    this.score_estimate.board[j][i] === 0
                 ) {
-                    color = this.score_estimate.territory[j][i] === 1 ? "black" : "white";
-                    if (
-                        this.score_estimate.board[j][i] === 0 &&
-                        this.score_estimate.removal[j][i]
-                    ) {
-                        color = "dame";
-                    }
+                    color = "dame";
                 }
 
                 if (
@@ -2315,9 +2307,8 @@ export class GobanCanvas extends GobanCore {
                 (pos.score && (this.engine.phase !== "finished" || this.mode === "play")) ||
                 (this.scoring_mode &&
                     this.score_estimate &&
-                    (this.score_estimate.territory[j][i] ||
-                        (this.score_estimate.removal[j][i] &&
-                            this.score_estimate.board[j][i] === 0))) ||
+                    this.score_estimate.removal[j][i] &&
+                    this.score_estimate.board[j][i] === 0) ||
                 ((this.engine.phase === "stone removal" ||
                     (this.engine.phase === "finished" && this.mode === "play")) &&
                     this.engine.board[j][i] === 0 &&
@@ -2327,11 +2318,9 @@ export class GobanCanvas extends GobanCore {
                 if (
                     this.scoring_mode &&
                     this.score_estimate &&
-                    (this.score_estimate.territory[j][i] ||
-                        (this.score_estimate.removal[j][i] &&
-                            this.score_estimate.board[j][i] === 0))
+                    this.score_estimate.removal[j][i] &&
+                    this.score_estimate.board[j][i] === 0
                 ) {
-                    color = this.score_estimate.territory[j][i] === 1 ? "black" : "white";
                     if (
                         this.score_estimate.board[j][i] === 0 &&
                         this.score_estimate.removal[j][i]
@@ -2349,13 +2338,6 @@ export class GobanCanvas extends GobanCore {
                     color = "dame";
                 }
 
-                if (
-                    this.scoring_mode &&
-                    this.score_estimate &&
-                    this.score_estimate.territory[j][i]
-                ) {
-                    color = this.score_estimate.territory[j][i] === 1 ? "black" : "white";
-                }
                 ret += "score " + color + ",";
             }
         }
