@@ -258,7 +258,6 @@ export class ScoreEstimator {
     group_list: Array<SEGroup>;
     amount: number = NaN;
     ownership: Array<Array<number>>;
-    territory: Array<Array<number>>;
     trials: number;
     winner: string = "";
     color_to_move: "black" | "white";
@@ -283,7 +282,6 @@ export class ScoreEstimator {
         this.removal = GoMath.makeMatrix(this.width, this.height, 0);
         this.ownership = GoMath.makeMatrix(this.width, this.height, 0);
         this.groups = GoMath.makeEmptyObjectMatrix(this.width, this.height);
-        this.territory = GoMath.makeMatrix(this.width, this.height, 0);
         this.estimated_hard_score = 0.0;
         this.group_list = [];
         this.trials = trials;
@@ -477,7 +475,6 @@ export class ScoreEstimator {
         return ret;
     }
     resetGroups(): void {
-        this.territory = GoMath.makeMatrix(this.width, this.height, 0);
         this.groups = GoMath.makeEmptyObjectMatrix(this.width, this.height);
         this.group_list = [];
 
