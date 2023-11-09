@@ -1,4 +1,5 @@
 import { GoEngine } from "../GoEngine";
+import { makeMatrix } from "../GoMath";
 import {
     ScoreEstimator,
     adjust_estimate,
@@ -365,5 +366,20 @@ describe("ScoreEstimator", () => {
         // missing score means zero, and compensates for a komi of 7.5..
         //   - bpj
         expect(se.amount).toBe(4);
+    });
+
+    test("local scorer with stones removed", async () => {
+        set_local_scorer(estimateScoreVoronoi);
+        const se = new ScoreEstimator(undefined, engine, 10, 0.5, false);
+        await se.when_ready;
+
+        se.handleClick(1, 0, false);
+        se.handleClick(2, 0, false);
+        expect(se.removal).toEqual([
+            [0, 1, 1, 0],
+            [0, 1, 1, 0],
+        ]);
+
+        expect(se.ownership).toEqual(makeMatrix(4, 2));
     });
 });
