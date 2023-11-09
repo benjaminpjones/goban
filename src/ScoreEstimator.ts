@@ -263,13 +263,6 @@ export class ScoreEstimator {
     /* Somewhat deprecated in-browser score estimator that utilizes our WASM compiled
      * OGSScoreEstimatorModule */
     private async estimateScoreLocal(trials: number, tolerance: number): Promise<void> {
-        if (!trials) {
-            trials = 1000;
-        }
-        if (!tolerance) {
-            tolerance = 0.25;
-        }
-
         const board = GoMath.makeMatrix(this.width, this.height);
         for (let y = 0; y < this.height; ++y) {
             for (let x = 0; x < this.width; ++x) {
