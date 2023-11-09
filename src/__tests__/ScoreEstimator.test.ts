@@ -342,4 +342,28 @@ describe("ScoreEstimator", () => {
             [1, 0, 0, -1],
         ]);
     });
+
+    test("remote scorers do not need to set score", async () => {
+        const engine = new GoEngine({ komi: 3.5, width: 4, height: 2, rules: "chinese" });
+        engine.place(1, 0);
+        engine.place(2, 0);
+        engine.place(1, 1);
+        engine.place(2, 1);
+
+        set_remote_scorer(async () => ({
+            ownership: OWNERSHIP,
+        }));
+
+        const se = new ScoreEstimator(undefined, engine, 10, 0.5, true);
+        await se.when_ready;
+
+        expect(se.ownership).toEqual(OWNERSHIP);
+        expect(se.winner).toBe("Black");
+        // I'm not actually sure this is the "right" behavior when the
+        // remote scorer doesn't return a score.  I would think it would
+        // derive the score from the ownership map.  Instead, it assumes
+        // missing score means zero, and compensates for a komi of 7.5..
+        //   - bpj
+        expect(se.amount).toBe(4);
+    });
 });
