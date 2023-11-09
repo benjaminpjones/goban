@@ -382,4 +382,16 @@ describe("ScoreEstimator", () => {
 
         expect(se.ownership).toEqual(makeMatrix(4, 2));
     });
+
+    test("modkey", async () => {
+        set_local_scorer(estimateScoreVoronoi);
+        const se = new ScoreEstimator(undefined, engine, 10, 0.5, false);
+        await se.when_ready;
+
+        se.handleClick(1, 0, true);
+        expect(se.removal).toEqual([
+            [0, 1, 0, 0],
+            [0, 0, 0, 0],
+        ]);
+    });
 });
