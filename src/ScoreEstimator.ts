@@ -107,48 +107,6 @@ class SEGroup {
         this.neighbor_map = {};
         this.removed = false;
     }
-    add(i: number, j: number) {
-        this.points.push({ x: i, y: j });
-    }
-    foreachPoint(fn: (pt: SEPoint) => void) {
-        for (let i = 0; i < this.points.length; ++i) {
-            fn(this.points[i]);
-        }
-    }
-    foreachNeighboringPoint(fn: (pt: SEPoint) => void) {
-        const self = this;
-        const points = this.points;
-        const done_array = new Array(this.se.height * this.se.width);
-        for (let i = 0; i < points.length; ++i) {
-            done_array[points[i].x + points[i].y * this.se.width] = true;
-        }
-
-        function checkAndDo(x: number, y: number): void {
-            const idx = x + y * self.se.width;
-            if (done_array[idx]) {
-                return;
-            }
-            done_array[idx] = true;
-
-            fn({ x: x, y: y });
-        }
-
-        for (let i = 0; i < points.length; ++i) {
-            const pt = points[i];
-            if (pt.x - 1 >= 0) {
-                checkAndDo(pt.x - 1, pt.y);
-            }
-            if (pt.x + 1 !== this.se.width) {
-                checkAndDo(pt.x + 1, pt.y);
-            }
-            if (pt.y - 1 >= 0) {
-                checkAndDo(pt.x, pt.y - 1);
-            }
-            if (pt.y + 1 !== this.se.height) {
-                checkAndDo(pt.x, pt.y + 1);
-            }
-        }
-    }
     addNeighbor(group: SEGroup): void {
         if (!(group.id in this.neighbor_map)) {
             this.neighbors.push(group);
@@ -159,11 +117,6 @@ class SEGroup {
             } else {
                 this.neighboring_enemy.push(group);
             }
-        }
-    }
-    foreachNeighborGroup(fn: (group: SEGroup) => void): void {
-        for (let i = 0; i < this.neighbors.length; ++i) {
-            fn(this.neighbors[i]);
         }
     }
     foreachNeighborSpaceGroup(fn: (group: SEGroup) => void): void {
