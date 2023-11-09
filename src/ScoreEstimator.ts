@@ -217,62 +217,52 @@ export class ScoreEstimator {
         }
     }
 
-    private estimateScoreRemote(): Promise<void> {
+    private async estimateScoreRemote(): Promise<void> {
         const komi = this.engine.komi;
         const captures_delta = this.engine.score_prisoners
             ? this.engine.getBlackPrisoners() - this.engine.getWhitePrisoners()
             : 0;
 
-        return new Promise<void>((resolve, reject) => {
-            if (!remote_scorer) {
-                throw new Error("Remote scoring not setup");
+        if (!remote_scorer) {
+            throw new Error("Remote scoring not setup");
+        }
+
+        const board_state: Array<Array<number>> = [];
+        for (let y = 0; y < this.height; ++y) {
+            const row: Array<number> = [];
+            for (let x = 0; x < this.width; ++x) {
+                row.push(this.removal[y][x] ? 0 : this.board[y][x]);
             }
+            board_state.push(row);
+        }
 
-            const board_state: Array<Array<number>> = [];
-            for (let y = 0; y < this.height; ++y) {
-                const row: Array<number> = [];
-                for (let x = 0; x < this.width; ++x) {
-                    row.push(this.removal[y][x] ? 0 : this.board[y][x]);
-                }
-                board_state.push(row);
-            }
-
-            remote_scorer({
-                player_to_move: this.engine.colorToMove(),
-                width: this.engine.width,
-                height: this.engine.height,
-                rules: this.engine.rules,
-                board_state: board_state,
-                jwt: "", // this gets set by the remote_scorer method
-            })
-                .then((res: ScoreEstimateResponse) => {
-                    let score_estimate = 0;
-                    for (let y = 0; y < this.height; ++y) {
-                        for (let x = 0; x < this.width; ++x) {
-                            score_estimate += res.ownership[y][x] > 0 ? 1 : -1;
-                        }
-                    }
-
-                    if (!res.score) {
-                        res.score = 0;
-                    }
-
-                    res.score += 7.5 - komi; // we always ask katago to use 7.5 komi, so correct if necessary
-                    res.score += captures_delta;
-                    res.score -= this.engine.getHandicapPointAdjustmentForWhite();
-
-                    this.updateEstimate(score_estimate, res.ownership, res.score);
-                    resolve();
-                })
-                .catch((err: any) => {
-                    reject(err);
-                });
+        const res = await remote_scorer({
+            player_to_move: this.engine.colorToMove(),
+            width: this.engine.width,
+            height: this.engine.height,
+            rules: this.engine.rules,
+            board_state: board_state,
+            jwt: "", // this gets set by the remote_scorer method
         });
+
+        let score_estimate = 0;
+        for (let y = 0; y < this.height; ++y) {
+            for (let x = 0; x < this.width; ++x) {
+                score_estimate += res.ownership[y][x] > 0 ? 1 : -1;
+            }
+        }
+        if (!res.score) {
+            res.score = 0;
+        }
+        res.score += 7.5 - komi; // we always ask katago to use 7.5 komi, so correct if necessary
+        res.score += captures_delta;
+        res.score -= this.engine.getHandicapPointAdjustmentForWhite();
+        this.updateEstimate(score_estimate, res.ownership, res.score);
     }
 
     /* Somewhat deprecated in-browser score estimator that utilizes our WASM compiled
      * OGSScoreEstimatorModule */
-    private estimateScoreLocal(trials: number, tolerance: number): Promise<void> {
+    private async estimateScoreLocal(trials: number, tolerance: number): Promise<void> {
         if (!trials) {
             trials = 1000;
         }
@@ -296,7 +286,6 @@ export class ScoreEstimator {
         const adjusted = adjust_estimate(this.engine, this.board, ownership, estimated_score);
 
         this.updateEstimate(adjusted.score, adjusted.ownership);
-        return Promise.resolve();
     }
 
     updateEstimate(estimated_score: number, ownership: Array<Array<number>>, score?: number) {

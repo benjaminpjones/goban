@@ -323,4 +323,23 @@ describe("ScoreEstimator", () => {
         expect(se.getProbablyDead()).toBe("babbcacb");
         // expect(se.getProbablyDead()).toBe("cacb");
     });
+
+    test("Falls back to local scorer if remote scorer is not set", async () => {
+        set_remote_scorer(undefined as any);
+        const mock_local_scorer = jest.fn();
+        mock_local_scorer.mockReturnValue([
+            [1, 1, -1, -1],
+            [1, 1, -1, -1],
+        ]);
+        set_local_scorer(mock_local_scorer);
+
+        const se = new ScoreEstimator(undefined, engine, 10, 0.5, true);
+        await se.when_ready;
+
+        expect(mock_local_scorer).toBeCalled();
+        expect(se.ownership).toEqual([
+            [1, 0, 0, -1],
+            [1, 0, 0, -1],
+        ]);
+    });
 });
