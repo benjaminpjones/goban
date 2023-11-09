@@ -346,11 +346,6 @@ export class ScoreEstimator {
             }
         }
     }
-    foreachGroup(fn: (group: SEGroup) => void): void {
-        for (let i = 0; i < this.group_list.length; ++i) {
-            fn(this.group_list[i]);
-        }
-    }
     handleClick(i: number, j: number, modkey: boolean) {
         if (modkey) {
             this.setRemoved(i, j, !this.removal[j][i] ? 1 : 0);
