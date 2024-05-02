@@ -33,6 +33,7 @@ import { AdHocPackedMove } from "./AdHocFormat";
 import { _ } from "./translate";
 import { EventEmitter } from "eventemitter3";
 import { GameClock } from "./protocol";
+import * as sunjang from "./sunjang";
 
 declare const CLIENT: boolean;
 declare const SERVER: boolean;
@@ -152,6 +153,7 @@ export interface GoEngineConfig {
     allow_ko?: boolean;
     allow_superko?: boolean;
     score_territory?: boolean;
+    sunjang?: boolean;
     score_territory_in_seki?: boolean;
     strict_seki_mode?: boolean;
     score_stones?: boolean;
@@ -489,6 +491,7 @@ export class GoEngine extends EventEmitter<Events> {
     public score_handicap: boolean = false;
     public score_territory: boolean = false;
     public score_territory_in_seki: boolean = false;
+    public sunjang: boolean = false;
     public territory_included_in_sgf: boolean = false;
 
     constructor(
@@ -1791,6 +1794,10 @@ export class GoEngine extends EventEmitter<Events> {
                     }
                 }
             }
+        }
+
+        if (this.sunjang) {
+            return sunjang.score(this.board, this.komi);
         }
 
         const scored: Array<Array<number>> = [];
